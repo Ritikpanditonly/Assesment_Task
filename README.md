@@ -162,12 +162,6 @@ also moved next to the button so it can't be missed on long forms.
 Retest: After the fix a valid submission returns 201 and an invalid one returns 400, both
 directly and through the proxy.
 
-## Screenshots
-
-Add your own before handing over
-
-A successful submission green message
- A validation error red field messages
 
 ## Known gaps
 
