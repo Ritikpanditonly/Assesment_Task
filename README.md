@@ -1,81 +1,107 @@
-#– Service Category Request
+# Service Category Request
 
-A small  feature where a  partner can request a new service category.
-React (Vite + Tailwind) on the front Express + MongoDB on the back.
+ Overview
 
-## Project layout
-Client/   React app (Vite)
-server/   Express API
+This feature allows partners to request a new service category if they cannot find a suitable option in the existing categories.
 
-## How to run it
+The frontend is built using React (Vite) and Tailwind CSS, while the backend uses Node.js, Express, and MongoDB. When a partner submits the form, the backend validates the information and saves the request.
 
-You need Node.js 18+ and  MongoDB running locally.
+Project Structure
 
-1. Backend
+- `Client/` – React frontend application.
+- `server/` – Express backend and API.
 
+ How to Run the Project
+
+Make sure Node.js 18 or above is installed and MongoDB is running locally.
+
+### 1. Start the Backend
+
+Open a terminal and run:
+
+```bash
 cd server
 npm install
 npm run dev
+```
 
-The API starts on http://localhost:5000. The settings live in `server/.env`:
+The backend runs at `http://localhost:5000`.
 
+Create a `.env` file inside the `server` folder:
+
+```env
 PORT=5000
 MONGODB_URI=mongodb://127.0.0.1:27017/peaks_tourism
 CLIENT_URL=http://localhost:3000
+```
 
-If MongoDB is not running (or `MONGODB_URI` is empty) the server still starts and saves
-requests to `server/requests.json` instead.
+If MongoDB is unavailable, the application can still accept requests and store them in `server/requests.json`.
 
-2. Frontend** (in a second terminal)
+### 2. Start the Frontend
 
+Open another terminal:
+
+```bash
 cd Client
 npm install
 npm run dev
+```
 
-Open http://localhost:3000. Vite forwards every `/api/...` call to the backend on port 5000
-(see `Client/vite.config.js`), so there is no CORS fiddling in the browser.
+Open `http://localhost:3000` in your browser.
 
-## How a request travels
+The Vite configuration forwards API requests to the backend running on port 5000, so the frontend can communicate with the backend without additional browser CORS configuration.
 
-1. The form lives in `Client/src/Pages/RequestCategory.jsx` (rendered by `App.jsx`). It trims and
- validates the fields, then sends a `POST /api/service-category-requests` with `fetch`.
-2. Vite's dev proxy (`Client/vite.config.js`) passes that call to Express in `server/index.js`.
-3. `server/routes/serviceCategoryRequestRoutes.js` hands it to
-  `server/controllers/serviceCategoryRequestController.js`, which trims and validates everything
-  again on the server.
-4. A valid request is saved through `server/models/ServiceCategoryRequest.js` (MongoDB), or to
-  `server/requests.json` when there is no database. The API replies `201` with a request ID
-  invalid one gets `400` with an `errors` object.
-5. The page shows the result next to the Submit button: a green success message, red field  errors, or a clear "could not reach the server" message.
+## How the Feature Works
 
-## API documentation
+The request follows this flow:
 
-### Create a service category request
+1. The partner opens the Service Category Request form in `RequestCategory.jsx`.
+2. They fill in the required details and submit the form.
+3. The frontend checks the entered information and sends a POST request to `/api/service-category-requests`.
+4. Vite forwards the request to the Express backend.
+5. The backend validates the information again before saving it.
+6. The request is stored in MongoDB. If MongoDB is unavailable, it is saved in a local JSON file.
+7. The frontend displays a success message or highlights the fields that need correction.
 
+The main files involved are:
 
- Method | `POST` |
- Path | `/api/service-category-requests` |
-Base URL (local) | `http://localhost:5000` |
- Headers | `Content-Type: application/json` |
- Authentication | None |
+- `Client/src/Pages/RequestCategory.jsx`
+- `Client/vite.config.js`
+- `server/index.js`
+- `server/routes/serviceCategoryRequestRoutes.js`
+- `server/controllers/serviceCategoryRequestController.js`
+- `server/models/ServiceCategoryRequest.js`
 
-### Fields
+## API Documentation
 
-| Field | Type | Required | Rules |
-| `categoryName` | string | Yes | Trimmed, 3–80 characters |
-| `categoryDescription` | string | Yes | Trimmed, 20–500 characters |
-| `reason` | string | Yes | Why the category is needed. Trimmed, 20–500 characters |
-| `parentCategory` | string | No | One of `Adventure`, `Transport`, `Accommodation`, or empty |
-| `exampleServices` | string | Yes | At least one example service |
-| `operatingLocation` | string | Yes | City or region |
-| `contactEmail` | string | Yes | Valid email format (saved in lower case) |
-| `referenceUrl` | string | No | If given, must be a valid `http://` or `https://` URL |
+**Create a Service Category Request**
 
-All text is trimmed before checking, so whitespace-only values count as empty.
+| Detail | Value |
+|---|---|
+| Method | POST |
+| Endpoint | `/api/service-category-requests` |
+| Local API URL | `http://localhost:5000/api/service-category-requests` |
+| Content-Type | `application/json` |
+| Authentication | Not required |
 
-### Sample request
+### Form Fields
 
-`json
+| Field | Required | Validation |
+|---|---|---|
+| categoryName | Yes | 3–80 characters |
+| categoryDescription | Yes | 20–500 characters |
+| reason | Yes | 20–500 characters |
+| parentCategory | No | Adventure, Transport, Accommodation, or empty |
+| exampleServices | Yes | At least one example service |
+| operatingLocation | Yes | City or region |
+| contactEmail | Yes | Valid email address |
+| referenceUrl | No | Must be a valid HTTP or HTTPS URL if provided |
+
+All text fields are trimmed before validation. Email addresses are stored in lowercase.
+
+### Sample Request
+
+```json
 {
   "categoryName": "Trekking",
   "categoryDescription": "Guided mountain treks for tourists and groups",
@@ -86,20 +112,24 @@ All text is trimmed before checking, so whitespace-only values count as empty.
   "contactEmail": "test@example.com",
   "referenceUrl": "https://example.com"
 }
+```
 
-### Responses
-*201 Created*
+## API Responses
 
-json
+### Successful Request – 201 Created
+
+```json
 {
   "message": "Category request submitted successfully!",
   "requestId": "6745f0c2a1b2c3d4e5f67890"
 }
+```
 
+The response includes a confirmation message and the ID of the saved request.
 
-**400 Bad Request** (field-level errors)
+ Validation Error – 400 Bad Request
 
-json
+```json
 {
   "message": "Please correct the form errors.",
   "errors": {
@@ -108,62 +138,54 @@ json
     "referenceUrl": "Please enter an HTTP or HTTPS URL."
   }
 }
+```
 
+If the submitted information is invalid, the API returns field-level error messages.
 
-Malformed JSON also returns `400` (`{"message": "Invalid JSON in request body."}`), and an
-unexpected server problem returns `500`.
+Malformed JSON also returns a 400 response. Unexpected server errors return 500.
 
-### curl
+## Testing
 
-Valid request:
+The API was tested using curl and Postman, and the frontend was tested through the Vite development server.
 
-curl -i -X POST http://localhost:5000/api/service-category-requests \
-  -H "Content-Type: application/json" \
-  -d '{"categoryName":"Trekking","categoryDescription":"Guided mountain treks for tourists and groups","reason":"Many customers keep asking for this service","parentCategory":"Adventure","exampleServices":"Himalaya trek, day hike","operatingLocation":"Manali","contactEmail":"test@example.com","referenceUrl":"https://example.com"}'
+| Test Case | Result |
+|---|---|
+| Submit a valid request directly to the API | Passed – 201 response |
+| Submit a valid request through the frontend proxy | Passed – 201 response |
+| Submit empty or invalid fields | Passed – 400 response with validation errors |
+| Submit an invalid request directly to the API | Passed – 400 response |
+| Submit malformed JSON | Passed – 400 response |
+| Rapidly click Submit multiple times | Pending manual browser verification |
+| Submit while the backend is stopped | Pending manual browser verification |
 
-Invalid request:
+The form also prevents repeated submissions while a request is being processed by disabling the Submit button and using a `useRef` flag.
 
-curl -i -X POST http://localhost:5000/api/service-category-requests \
-  -H "Content-Type: application/json" \
-  -d '{"categoryName":"   ","contactEmail":"bad-email","referenceUrl":"ftp://example.com"}'
+If the backend cannot be reached, the frontend is designed to display a clear error message.
 
-In Postman: set method to POST, use the URL above, choose Body → raw → JSON, and paste the sample.
+## Issue Identified and Fixed
 
-## Test log
+During testing, the Submit button was not working as expected. When checking the browser's Network tab, the API request was failing.
 
-| Test | Expected | Actual |
-| Valid request sent to the API | 201 + request ID, one record saved | 201, ID returned, one record saved |
-| Valid request through the Vite proxy (port 3000) | 201 | 201 |
-| Blank / whitespace-only name, bad email, `ftp://` URL | 400 with field errors, nothing saved | 400 with errors for every bad field, nothing saved |
-| Invalid request sent straight to the API | 400 | 400 |
-| Broken JSON body | 400 | 400 "Invalid JSON in request body." |
-| Rapid double-click on Submit | One record only | Needs a browser check (see below) |
-| Backend stopped, then Submit | Clear error on the page | Needs a browser check (see below) |
+After checking the configuration, I found that the frontend was sending requests to the Vite development server instead of the Express backend.
 
-How the last two are meant to work: the form blocks a second submit while one is running
-(a `useRef` flag plus a disabled button), so a double-click sends one request. If the server is
-down the page shows "Could not reach the server…". Please confirm both in the browser and check
-the Network tab / `server/requests.json` for a single record.
+There were also two configuration issues:
 
-## Issue found and fixed
+- The Vite proxy was not configured correctly.
+- The database name in the `.env` file contained an unwanted space, and the frontend URL variable name did not match what the server was reading.
 
-Problem:Clicking Submit did nothing useful; the browser Network tab showed the
-`/api/service-category-requests` call failing.
+To fix these issues, I configured the `/api` proxy in `vite.config.js`, corrected the environment variables, and added a JSON file fallback for cases where MongoDB is unavailable.
 
-Cause: The page calls a relative URL (`/api/...`), but Vite had no proxy configured, so the
-request went to the Vite dev server (which has no API) instead of Express on port 5000.
-Related config slips made it worse: `.env` had a database name with a space in it, and the
-server read `FRONTEND_URL` while `.env` defined `CLIENT_URL`.
+I also moved the submission status message next to the Submit button so that users can easily see whether their request was successful or failed.
 
-Fix: Added the `/api` proxy in `Client/vite.config.js`, cleaned up `.env`, and made the
-server fall back to a local file when MongoDB is unavailable. The submit result message was
-also moved next to the button so it can't be missed on long forms.
+After making these changes, I tested both valid and invalid requests. The API returned the expected 201 and 400 responses.
 
-Retest: After the fix a valid submission returns 201 and an invalid one returns 400, both
-directly and through the proxy.
+## Remaining Work
 
+A couple of scenarios still need to be checked manually in the browser:
 
-## Known gaps
+1. Click the Submit button rapidly multiple times and confirm that only one request is saved.
+2. Stop the backend and try submitting the form to confirm that the user sees the correct error message.
 
-The double-click and "API unavailable" cases still need a manual browser run-through.
- No automated tests; the API was checked with curl/Postman.
+These checks can be completed using the browser's Network tab and by checking `server/requests.json`.
+
+There are currently no automated tests. The API functionality has been verified using curl and Postman.
